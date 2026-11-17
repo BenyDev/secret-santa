@@ -1,6 +1,8 @@
 package pl.secretsanta.event;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,4 +23,14 @@ public interface GiftEventRepository extends JpaRepository<GiftEvent, UUID> {
     List<GiftEventSummary> findSummariesByOrganizerId(@Param("organizerId") UUID organizerId);
 
     Optional<GiftEvent> findByIdAndOrganizerId(UUID id, UUID organizerId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from GiftEvent e where e.id = :eventId and e.organizer.id = :organizerId")
+    Optional<GiftEvent> lockOwnedEvent(@Param("eventId") UUID eventId, @Param("organizerId") UUID organizerId);
+
+    Optional<GiftEvent> findByInvitationTokenHash(String hash);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from GiftEvent e where e.invitationTokenHash = :hash")
+    Optional<GiftEvent> lockInvitedEvent(@Param("hash") String hash);
 }

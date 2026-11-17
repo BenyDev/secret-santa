@@ -10,7 +10,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "gift_events")
 public class GiftEvent {
-    public enum Status { OPEN }
+    public enum Status { OPEN, CLOSED }
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -33,6 +33,9 @@ public class GiftEvent {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "invitation_token_hash", length = 64)
+    private String invitationTokenHash;
+
     protected GiftEvent() {
     }
 
@@ -50,4 +53,8 @@ public class GiftEvent {
     public AppUser getOrganizer() { return organizer; }
     public Status getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
+
+    void replaceInvitationTokenHash(String hash) {
+        this.invitationTokenHash = hash;
+    }
 }

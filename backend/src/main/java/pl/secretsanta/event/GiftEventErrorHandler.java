@@ -8,14 +8,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
 
-@RestControllerAdvice(assignableTypes = GiftEventController.class)
+@RestControllerAdvice(assignableTypes = {GiftEventController.class, InvitationController.class})
 class GiftEventErrorHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ValidationError> invalidFields(MethodArgumentNotValidException exception) {
         List<FieldIssue> fields = exception.getBindingResult().getFieldErrors().stream()
                 .map(error -> new FieldIssue(error.getField(), error.getDefaultMessage()))
                 .toList();
-        return ResponseEntity.badRequest().body(new ValidationError("VALIDATION_ERROR", "Sprawdź dane wydarzenia.", fields));
+        String message = exception.getParameter().getParameterType() == InvitationController.JoinRequest.class
+                ? "Sprawdź dane uczestnika." : "Sprawdź dane wydarzenia.";
+        return ResponseEntity.badRequest().body(new ValidationError("VALIDATION_ERROR", message, fields));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
