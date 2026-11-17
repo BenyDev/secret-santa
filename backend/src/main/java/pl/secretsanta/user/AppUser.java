@@ -46,4 +46,8 @@ public class AppUser {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
 }

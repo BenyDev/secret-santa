@@ -46,9 +46,17 @@ Właściciel projektu uczy się programowania z pomocą AI.
 6. Commit i push do GitHub wykonuj wyłącznie na polecenie właściciela.
 7. Zachowuj istniejące pliki i konfigurację poza zakresem zadania.
 
-## Dokumentacja według zadania
+## Praca z istniejącym projektem
 
-Czytaj dokumenty istotne dla bieżącej zmiany.
+Przed każdym zadaniem:
+
+1. Uruchom `git status --short`, `git diff --name-only` i `git diff --cached --name-only`.
+2. Jeśli niezacommitowane zmiany dotyczą zadania, sprawdź konkretny diff tych plików, również w indeksie.
+3. Odczytaj aktualne pliki potrzebne do zadania oraz ich istotne zależności. Nie zakładaj, że ich stan odpowiada poprzedniej sesji.
+4. Poszerz analizę tylko wtedy, gdy wymaga tego zadanie. Unikaj rutynowego przeglądania całego repozytorium, pełnej historii Git i wszystkich dokumentów.
+5. Zachowaj niezacommitowane zmiany użytkownika. Ich usunięcie lub nadpisanie wymaga wyraźnej zgody.
+
+## Dokumentacja według zadania
 
 - Wygląd, animacje i dostępność strony głównej opisuje [specyfikacja landing page](docs/UI_LANDING_PAGE.md).
 - Warstwy, eksport i położenie plików opisuje [plan zasobów graficznych](docs/UI_ASSETS_PLAN.md).

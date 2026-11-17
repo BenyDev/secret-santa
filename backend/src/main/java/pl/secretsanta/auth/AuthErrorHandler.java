@@ -1,5 +1,6 @@
 package pl.secretsanta.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -7,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -27,8 +29,9 @@ class AuthErrorHandler extends ResponseEntityExceptionHandler {
                         "passwordWithinBcryptLimit".equals(error.getField()) ? "password" : error.getField(),
                         error.getDefaultMessage()))
                 .toList();
-        return ResponseEntity.badRequest().body(new ValidationError(
-                "VALIDATION_ERROR", "Sprawdź dane rejestracji.", fields));
+        String message = exception.getParameter().getParameterType() == RegisterRequest.class
+                ? "Sprawdź dane rejestracji." : "Sprawdź dane logowania.";
+        return ResponseEntity.badRequest().body(new ValidationError("VALIDATION_ERROR", message, fields));
     }
 
     @Override
@@ -44,10 +47,18 @@ class AuthErrorHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ApiError> unexpected(Exception exception) {
-        log.error("Registration failed unexpectedly ({})", exception.getClass().getSimpleName());
+    ResponseEntity<ApiError> unexpected(Exception exception, HttpServletRequest request) {
+        log.error("Auth request failed unexpectedly ({})", exception.getClass().getSimpleName());
+        String message = request.getRequestURI().endsWith("/api/auth/register")
+                ? "Nie udało się zarejestrować konta." : "Nie udało się obsłużyć żądania.";
         return ResponseEntity.internalServerError()
-                .body(new ApiError("INTERNAL_ERROR", "Nie udało się zarejestrować konta."));
+                .body(new ApiError("INTERNAL_ERROR", message));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    ResponseEntity<ApiError> invalidCredentials() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiError("INVALID_CREDENTIALS", "Nieprawidłowy e-mail lub hasło"));
     }
 
     record ApiError(String code, String message) {

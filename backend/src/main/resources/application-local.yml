@@ -5,3 +5,6 @@ spring:
     url: "jdbc:postgresql://127.0.0.1:${POSTGRES_PORT:55432}/${POSTGRES_DB:secret_santa}"
     username: "${POSTGRES_USER:secret_santa}"
     password: "${POSTGRES_PASSWORD}"
+
+server:
+  address: 127.0.0.1
