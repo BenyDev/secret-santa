@@ -9,6 +9,7 @@ import pl.secretsanta.user.AppUserRepository;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -35,5 +36,21 @@ public class GiftEventService {
                 event.getCreatedAt(), event.getOrganizer().getId(),
                 new GiftEventResponse.OrganizerParticipant(participant.getId(), organizer.getId(),
                         participant.getNickname(), participant.getCreatedAt()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<GiftEventSummary> list(UUID organizerId) {
+        return events.findSummariesByOrganizerId(organizerId);
+    }
+
+    @Transactional(readOnly = true)
+    public GiftEventDetails details(UUID organizerId, UUID eventId) {
+        GiftEvent event = events.findByIdAndOrganizerId(eventId, organizerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var participantDetails = participants.findByEventIdOrderByCreatedAtAscIdAsc(event.getId()).stream()
+                .map(participant -> new GiftEventDetails.ParticipantDetails(participant.getId(), participant.getNickname()))
+                .toList();
+        return new GiftEventDetails(event.getId(), event.getName(), event.getBudget(), event.getStatus(),
+                event.getCreatedAt(), organizerId, participantDetails);
     }
 }

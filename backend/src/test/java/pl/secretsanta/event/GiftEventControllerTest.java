@@ -28,6 +28,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -75,6 +76,13 @@ class GiftEventControllerTest {
     void requiresJwt() throws Exception {
         mvc.perform(post("/api/events").contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
                 .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+        verifyNoInteractions(events);
+    }
+
+    @Test
+    void requiresJwtToReadEvents() throws Exception {
+        mvc.perform(get("/api/events")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/events/{eventId}", UUID.randomUUID())).andExpect(status().isUnauthorized());
         verifyNoInteractions(events);
     }
 

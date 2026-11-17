@@ -10,6 +10,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -23,6 +28,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,6 +45,50 @@ class GiftEventPostgresTest {
     @Autowired private TransactionTemplate transactions;
     @Autowired private AppUserRepository users;
     @Autowired private GiftEventService events;
+    @Autowired private JwtEncoder encoder;
+
+    @Test
+    void readsOnlyOwnedEventsWithCountsAndParticipantDetails() throws Exception {
+        UUID organizer = createUser();
+        UUID otherOrganizer = createUser();
+        var older = events.create(organizer, new CreateGiftEventRequest("Starsze", BigDecimal.TEN, "Ben"));
+        var latest = events.create(organizer, new CreateGiftEventRequest("Najnowsze", BigDecimal.TEN, "Ben"));
+        var foreign = events.create(otherOrganizer, new CreateGiftEventRequest("Cudze", BigDecimal.TEN, "Ola"));
+        jdbc.update("UPDATE secret_santa.gift_events SET created_at = now() - interval '1 day' WHERE id = ?", older.id());
+        UUID guestId = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO secret_santa.participants (id, event_id, nickname, created_at)
+                VALUES (?, ?, 'Gość', now() + interval '1 second')
+                """, guestId, latest.id());
+        String bearer = bearerFor(organizer);
+
+        mvc.perform(get("/api/events").header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(latest.id().toString()))
+                .andExpect(jsonPath("$[0].name").value("Najnowsze"))
+                .andExpect(jsonPath("$[0].budget").value(10))
+                .andExpect(jsonPath("$[0].status").value("OPEN"))
+                .andExpect(jsonPath("$[0].createdAt").isString())
+                .andExpect(jsonPath("$[0].participantCount").value(2))
+                .andExpect(jsonPath("$[1].id").value(older.id().toString()))
+                .andExpect(jsonPath("$[1].participantCount").value(1));
+        mvc.perform(get("/api/events").header(HttpHeaders.AUTHORIZATION, bearerFor(createUser())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get("/api/events/{id}", latest.id()).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizerId").value(organizer.toString()))
+                .andExpect(jsonPath("$.participants.length()").value(2))
+                .andExpect(jsonPath("$.participants[0].nickname").value("Ben"))
+                .andExpect(jsonPath("$.participants[1].id").value(guestId.toString()))
+                .andExpect(jsonPath("$.participants[1].nickname").value("Gość"))
+                .andExpect(jsonPath("$.participants[0].userId").doesNotHaveJsonPath());
+        for (UUID id : new UUID[]{foreign.id(), UUID.randomUUID()}) {
+            mvc.perform(get("/api/events/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer))
+                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.name").doesNotHaveJsonPath());
+        }
+    }
 
     @Test
     void persistsTheOrganizerAndTheirParticipantAndAllowsGuestWithoutAccount() throws Exception {
@@ -104,5 +154,13 @@ class GiftEventPostgresTest {
 
     private UUID createUser() {
         return users.save(new AppUser(UUID.randomUUID() + "@example.com", "fixture-hash", Instant.now())).getId();
+    }
+
+    private String bearerFor(UUID userId) {
+        Instant now = Instant.now();
+        var claims = JwtClaimsSet.builder().issuer("secret-santa").subject(userId.toString())
+                .issuedAt(now).expiresAt(now.plusSeconds(900)).build();
+        return "Bearer " + encoder.encode(JwtEncoderParameters.from(
+                JwsHeader.with(SignatureAlgorithm.RS256).build(), claims)).getTokenValue();
     }
 }
