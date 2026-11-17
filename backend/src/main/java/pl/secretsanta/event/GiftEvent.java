@@ -10,7 +10,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "gift_events")
 public class GiftEvent {
-    public enum Status { OPEN, CLOSED }
+    public enum Status { OPEN, CLOSED, DRAWN }
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -56,6 +56,10 @@ public class GiftEvent {
 
     void close() {
         this.status = Status.CLOSED;
+    }
+
+    void markDrawn() {
+        this.status = Status.DRAWN;
     }
 
     void replaceInvitationTokenHash(String hash) {

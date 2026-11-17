@@ -3,6 +3,7 @@ package pl.secretsanta.event;
 import pl.secretsanta.event.dto.CreateGiftEventRequest;
 import pl.secretsanta.event.dto.GiftEventResponse;
 import pl.secretsanta.event.dto.OrganizerParticipant;
+import pl.secretsanta.event.dto.DrawResponse;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,6 +32,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -88,6 +90,24 @@ class GiftEventControllerTest {
         mvc.perform(get("/api/events")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/events/{eventId}", UUID.randomUUID())).andExpect(status().isUnauthorized());
         verifyNoInteractions(events);
+    }
+
+    @Test
+    void drawRequiresJwtAndResponseDoesNotRevealAssignments() throws Exception {
+        UUID eventId = UUID.randomUUID();
+        mvc.perform(post("/api/events/{eventId}/draw", eventId))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(events);
+
+        when(events.draw(ORGANIZER_ID, eventId)).thenReturn(new DrawResponse(eventId, GiftEvent.Status.DRAWN));
+        mvc.perform(post("/api/events/{eventId}/draw", eventId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(eventId.toString()))
+                .andExpect(jsonPath("$.status").value("DRAWN"))
+                .andExpect(jsonPath("$.recipientId").doesNotHaveJsonPath())
+                .andExpect(jsonPath("$.assignments").doesNotHaveJsonPath());
+        verify(events).draw(ORGANIZER_ID, eventId);
     }
 
     @ParameterizedTest

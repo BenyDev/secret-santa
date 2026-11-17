@@ -13,22 +13,32 @@ import pl.secretsanta.event.dto.GiftEventResponse;
 import pl.secretsanta.event.dto.GiftEventSummary;
 import pl.secretsanta.event.dto.OrganizerParticipant;
 import pl.secretsanta.event.dto.ParticipantDetails;
+import pl.secretsanta.event.dto.DrawResponse;
+import pl.secretsanta.event.draw.SecretSantaDraw;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class GiftEventService {
     private final AppUserRepository users;
     private final GiftEventRepository events;
     private final ParticipantRepository participants;
+    private final GiftAssignmentRepository assignments;
+    private final SecretSantaDraw drawAlgorithm = new SecretSantaDraw(new SecureRandom());
 
-    public GiftEventService(AppUserRepository users, GiftEventRepository events, ParticipantRepository participants) {
+    public GiftEventService(AppUserRepository users, GiftEventRepository events, ParticipantRepository participants,
+                            GiftAssignmentRepository assignments) {
         this.users = users;
         this.events = events;
         this.participants = participants;
+        this.assignments = assignments;
     }
 
     @Transactional
@@ -74,5 +84,27 @@ public class GiftEventService {
         }
         event.close();
         return new CloseResponse(event.getId(), event.getStatus());
+    }
+
+    @Transactional
+    public DrawResponse draw(UUID organizerId, UUID eventId) {
+        // The same row lock serializes closing, joining and competing draw requests.
+        GiftEvent event = events.lockOwnedEvent(eventId, organizerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nie znaleziono wydarzenia."));
+        if (event.getStatus() != GiftEvent.Status.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Losowanie wymaga zamkniętej listy uczestników.");
+        }
+        List<Participant> eventParticipants = participants.findByEventIdOrderByCreatedAtAscIdAsc(eventId);
+        if (eventParticipants.size() < 3) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Wydarzenie wymaga co najmniej 3 uczestników.");
+        }
+        Map<UUID, Participant> byId = eventParticipants.stream()
+                .collect(Collectors.toMap(Participant::getId, Function.identity()));
+        List<GiftAssignment> results = drawAlgorithm.draw(eventParticipants.stream().map(Participant::getId).toList())
+                .stream().map(pair -> new GiftAssignment(event, byId.get(pair.giverId()),
+                        byId.get(pair.recipientId()))).toList();
+        assignments.saveAllAndFlush(results);
+        event.markDrawn();
+        return new DrawResponse(event.getId(), event.getStatus());
     }
 }

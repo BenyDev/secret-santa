@@ -18,6 +18,7 @@ import pl.secretsanta.event.dto.CreateGiftEventRequest;
 import pl.secretsanta.event.dto.GiftEventDetails;
 import pl.secretsanta.event.dto.GiftEventResponse;
 import pl.secretsanta.event.dto.GiftEventSummary;
+import pl.secretsanta.event.dto.DrawResponse;
 
 @RestController
 public class GiftEventController {
@@ -46,6 +47,11 @@ public class GiftEventController {
     @PostMapping("/api/events/{eventId}/close")
     public CloseResponse close(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId) {
         return events.close(UUID.fromString(jwt.getSubject()), eventId);
+    }
+
+    @PostMapping("/api/events/{eventId}/draw")
+    public DrawResponse draw(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId) {
+        return events.draw(UUID.fromString(jwt.getSubject()), eventId);
     }
 
 }
