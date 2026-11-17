@@ -1,8 +1,6 @@
 package pl.secretsanta.event;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -13,8 +11,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.UUID;
+
+import pl.secretsanta.event.dto.InvitationDetails;
+import pl.secretsanta.event.dto.InvitationLink;
+import pl.secretsanta.event.dto.JoinRequest;
+import pl.secretsanta.event.dto.JoinResponse;
 
 @RestController
 public class InvitationController {
@@ -40,28 +42,4 @@ public class InvitationController {
         return invitations.join(token, request.nickname());
     }
 
-    public record InvitationLink(UUID eventId, String token) {
-        @Override
-        public String toString() {
-            return "InvitationLink[eventId=" + eventId + ", token=redacted]";
-        }
-    }
-
-    public record InvitationDetails(String name, BigDecimal budget, boolean canJoin) {
-    }
-
-    public record JoinResponse(UUID participantId, UUID eventId, String name, BigDecimal budget) {
-    }
-
-    public record JoinRequest(
-            @NotBlank(message = "Podaj pseudonim.")
-            @Size(max = 60, message = "Pseudonim może mieć maksymalnie 60 znaków.")
-            String nickname
-    ) {
-        public JoinRequest {
-            if (nickname != null) {
-                nickname = nickname.strip();
-            }
-        }
-    }
 }

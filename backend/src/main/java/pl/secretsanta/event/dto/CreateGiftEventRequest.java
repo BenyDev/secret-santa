@@ -1,4 +1,4 @@
-package pl.secretsanta.event;
+package pl.secretsanta.event.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -29,3 +29,4 @@ public record CreateGiftEventRequest(
         }
     }
 }
+

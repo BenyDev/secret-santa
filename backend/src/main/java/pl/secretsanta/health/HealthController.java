@@ -3,6 +3,7 @@ package pl.secretsanta.health;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import pl.secretsanta.health.dto.HealthResponse;
 
 @RestController
 public class HealthController {
@@ -17,6 +18,4 @@ public class HealthController {
         return new HealthResponse("UP", applicationName);
     }
 
-    public record HealthResponse(String status, String application) {
-    }
 }

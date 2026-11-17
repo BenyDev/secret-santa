@@ -1,6 +1,7 @@
-package pl.secretsanta.auth;
+package pl.secretsanta.auth.dto;
 
 import java.util.UUID;
 
 public record UserResponse(UUID id, String email) {
 }
+

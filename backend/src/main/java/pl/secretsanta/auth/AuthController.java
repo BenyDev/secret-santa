@@ -11,6 +11,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import pl.secretsanta.auth.dto.LoginRequest;
+import pl.secretsanta.auth.dto.LoginResponse;
+import pl.secretsanta.auth.dto.RegisterRequest;
+import pl.secretsanta.auth.dto.RegisterResponse;
+import pl.secretsanta.auth.dto.UserResponse;
 
 @RestController
 public class AuthController {

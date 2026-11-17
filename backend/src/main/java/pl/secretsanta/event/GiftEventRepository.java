@@ -9,10 +9,11 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import pl.secretsanta.event.dto.GiftEventSummary;
 
 public interface GiftEventRepository extends JpaRepository<GiftEvent, UUID> {
     @Query("""
-            select new pl.secretsanta.event.GiftEventSummary(
+            select new pl.secretsanta.event.dto.GiftEventSummary(
                 event.id, event.name, event.budget, event.status, count(participant.id), event.createdAt)
             from GiftEvent event
             left join Participant participant on participant.event = event

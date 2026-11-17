@@ -54,6 +54,10 @@ public class GiftEvent {
     public Status getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
 
+    void close() {
+        this.status = Status.CLOSED;
+    }
+
     void replaceInvitationTokenHash(String hash) {
         this.invitationTokenHash = hash;
     }

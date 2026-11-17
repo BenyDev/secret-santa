@@ -17,6 +17,9 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import pl.secretsanta.event.dto.InvitationDetails;
+import pl.secretsanta.event.dto.InvitationLink;
+import pl.secretsanta.event.dto.JoinResponse;
 
 @Service
 class InvitationService {
@@ -32,7 +35,7 @@ class InvitationService {
     }
 
     @Transactional
-    public InvitationController.InvitationLink rotate(UUID eventId, UUID organizerId) {
+    public InvitationLink rotate(UUID eventId, UUID organizerId) {
         GiftEvent event = events.lockOwnedEvent(eventId, organizerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nie znaleziono wydarzenia."));
         requireOpen(event);
@@ -41,18 +44,18 @@ class InvitationService {
         RANDOM.nextBytes(random);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
         event.replaceInvitationTokenHash(hash(token));
-        return new InvitationController.InvitationLink(eventId, token);
+        return new InvitationLink(eventId, token);
     }
 
     @Transactional(readOnly = true)
-    public InvitationController.InvitationDetails details(String token) {
+    public InvitationDetails details(String token) {
         GiftEvent event = events.findByInvitationTokenHash(invitationHash(token))
                 .orElseThrow(InvitationService::invitationNotFound);
-        return new InvitationController.InvitationDetails(event.getName(), event.getBudget(), isOpen(event));
+        return new InvitationDetails(event.getName(), event.getBudget(), isOpen(event));
     }
 
     @Transactional
-    public InvitationController.JoinResponse join(String token, String nickname) {
+    public JoinResponse join(String token, String nickname) {
         GiftEvent event = events.lockInvitedEvent(invitationHash(token))
                 .orElseThrow(InvitationService::invitationNotFound);
         requireOpen(event);
@@ -70,7 +73,7 @@ class InvitationService {
             }
             throw exception;
         }
-        return new InvitationController.JoinResponse(
+        return new JoinResponse(
                 participant.getId(), event.getId(), event.getName(), event.getBudget());
     }
 

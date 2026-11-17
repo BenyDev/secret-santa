@@ -1,5 +1,9 @@
 package pl.secretsanta.event;
 
+import pl.secretsanta.event.dto.CreateGiftEventRequest;
+import pl.secretsanta.event.dto.GiftEventResponse;
+import pl.secretsanta.event.dto.OrganizerParticipant;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -54,7 +58,7 @@ class GiftEventControllerTest {
         Instant now = Instant.now();
         when(events.create(ORGANIZER_ID, request)).thenReturn(new GiftEventResponse(eventId, request.name(),
                 request.budget(), GiftEvent.Status.OPEN, now, ORGANIZER_ID,
-                new GiftEventResponse.OrganizerParticipant(participantId, ORGANIZER_ID, "Ben", now)));
+                new OrganizerParticipant(participantId, ORGANIZER_ID, "Ben", now)));
 
         mvc.perform(post("/api/events").header(HttpHeaders.AUTHORIZATION, bearer()).contentType(MediaType.APPLICATION_JSON)
                         .content("""

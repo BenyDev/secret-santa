@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
+import pl.secretsanta.event.dto.JoinRequest;
 
 @RestControllerAdvice(assignableTypes = {GiftEventController.class, InvitationController.class})
 class GiftEventErrorHandler {
@@ -15,7 +16,7 @@ class GiftEventErrorHandler {
         List<FieldIssue> fields = exception.getBindingResult().getFieldErrors().stream()
                 .map(error -> new FieldIssue(error.getField(), error.getDefaultMessage()))
                 .toList();
-        String message = exception.getParameter().getParameterType() == InvitationController.JoinRequest.class
+        String message = exception.getParameter().getParameterType() == JoinRequest.class
                 ? "Sprawdź dane uczestnika." : "Sprawdź dane wydarzenia.";
         return ResponseEntity.badRequest().body(new ValidationError("VALIDATION_ERROR", message, fields));
     }

@@ -1,5 +1,9 @@
 package pl.secretsanta.auth;
 
+import pl.secretsanta.auth.dto.LoginRequest;
+import pl.secretsanta.auth.dto.RegisterRequest;
+import pl.secretsanta.auth.dto.RegisterResponse;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

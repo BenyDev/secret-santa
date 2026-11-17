@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.secretsanta.user.AppUser;
 import pl.secretsanta.user.AppUserRepository;
+import pl.secretsanta.auth.dto.RegisterRequest;
+import pl.secretsanta.auth.dto.RegisterResponse;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

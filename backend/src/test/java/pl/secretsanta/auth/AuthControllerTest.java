@@ -1,5 +1,8 @@
 package pl.secretsanta.auth;
 
+import pl.secretsanta.auth.dto.RegisterRequest;
+import pl.secretsanta.auth.dto.RegisterResponse;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;

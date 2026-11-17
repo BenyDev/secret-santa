@@ -15,6 +15,7 @@ Secret Santa służy do organizowania świątecznych losowań prezentów.
 - Rozwijaj aplikację małymi, testowalnymi funkcjonalnościami. Unikaj mikroserwisów i zbędnych zależności.
 - Uzasadnij proponowaną zmianę architektury i uzyskaj zatwierdzenie przed jej wdrożeniem.
 - W backendzie dbaj o poprawność relacji, transakcyjność i kontrolę uprawnień.
+- DTO trzymaj w osobnych plikach w pakietach `dto`; serwisy nie zależą od kontrolerów. Zachowuj podział Controller → Service → Repository.
 
 ## Reguły biznesowe
 
@@ -45,6 +46,12 @@ Właściciel projektu uczy się programowania z pomocą AI.
 5. Uruchamiaj odpowiednie testy lub kontrole i podawaj wyniki. Zgłaszaj błędy, problemy i ograniczenia weryfikacji.
 6. Commit i push do GitHub wykonuj wyłącznie na polecenie właściciela.
 7. Zachowuj istniejące pliki i konfigurację poza zakresem zadania.
+
+## Testowanie backendu
+
+- Domyślnie pisz szybkie testy JUnit 5 + Mockito bez uruchamiania kontekstu Spring dla logiki Java.
+- Testy integracyjne zachowuj tam, gdzie sprawdzają JPA, Flyway, transakcje, SQL lub współbieżność. Nie zastępuj ich mockami.
+- Uruchamiaj tylko testy związane z zadaniem. Testy wymagające PostgreSQL uruchamiaj wyłącznie po wyraźnym poleceniu właściciela; nie uruchamiaj automatycznie Dockera ani Testcontainers.
 
 ## Praca z istniejącym projektem
 

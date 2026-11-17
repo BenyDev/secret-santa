@@ -7,6 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import pl.secretsanta.user.AppUser;
 import pl.secretsanta.user.AppUserRepository;
+import pl.secretsanta.auth.dto.LoginRequest;
+import pl.secretsanta.auth.dto.LoginResponse;
+import pl.secretsanta.auth.dto.UserResponse;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;

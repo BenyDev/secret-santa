@@ -13,6 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import pl.secretsanta.event.dto.CloseResponse;
+import pl.secretsanta.event.dto.CreateGiftEventRequest;
+import pl.secretsanta.event.dto.GiftEventDetails;
+import pl.secretsanta.event.dto.GiftEventResponse;
+import pl.secretsanta.event.dto.GiftEventSummary;
 
 @RestController
 public class GiftEventController {
@@ -37,4 +42,10 @@ public class GiftEventController {
     public GiftEventDetails details(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId) {
         return events.details(UUID.fromString(jwt.getSubject()), eventId);
     }
+
+    @PostMapping("/api/events/{eventId}/close")
+    public CloseResponse close(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId) {
+        return events.close(UUID.fromString(jwt.getSubject()), eventId);
+    }
+
 }

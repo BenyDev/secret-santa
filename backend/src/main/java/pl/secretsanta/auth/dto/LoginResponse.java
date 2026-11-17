@@ -1,4 +1,4 @@
-package pl.secretsanta.auth;
+package pl.secretsanta.auth.dto;
 
 public record LoginResponse(String accessToken, String tokenType, long expiresIn, UserResponse user) {
     @Override
@@ -6,3 +6,4 @@ public record LoginResponse(String accessToken, String tokenType, long expiresIn
         return "LoginResponse[redacted]";
     }
 }
+

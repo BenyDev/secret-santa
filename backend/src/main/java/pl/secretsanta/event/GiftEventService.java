@@ -6,6 +6,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import pl.secretsanta.user.AppUser;
 import pl.secretsanta.user.AppUserRepository;
+import pl.secretsanta.event.dto.CloseResponse;
+import pl.secretsanta.event.dto.CreateGiftEventRequest;
+import pl.secretsanta.event.dto.GiftEventDetails;
+import pl.secretsanta.event.dto.GiftEventResponse;
+import pl.secretsanta.event.dto.GiftEventSummary;
+import pl.secretsanta.event.dto.OrganizerParticipant;
+import pl.secretsanta.event.dto.ParticipantDetails;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -34,7 +41,7 @@ public class GiftEventService {
 
         return new GiftEventResponse(event.getId(), event.getName(), event.getBudget(), event.getStatus(),
                 event.getCreatedAt(), event.getOrganizer().getId(),
-                new GiftEventResponse.OrganizerParticipant(participant.getId(), organizer.getId(),
+                new OrganizerParticipant(participant.getId(), organizer.getId(),
                         participant.getNickname(), participant.getCreatedAt()));
     }
 
@@ -48,9 +55,24 @@ public class GiftEventService {
         GiftEvent event = events.findByIdAndOrganizerId(eventId, organizerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         var participantDetails = participants.findByEventIdOrderByCreatedAtAscIdAsc(event.getId()).stream()
-                .map(participant -> new GiftEventDetails.ParticipantDetails(participant.getId(), participant.getNickname()))
+                .map(participant -> new ParticipantDetails(participant.getId(), participant.getNickname()))
                 .toList();
         return new GiftEventDetails(event.getId(), event.getName(), event.getBudget(), event.getStatus(),
                 event.getCreatedAt(), organizerId, participantDetails);
+    }
+
+    @Transactional
+    public CloseResponse close(UUID organizerId, UUID eventId) {
+        // Join and invitation rotation lock the same event row before reading its status.
+        GiftEvent event = events.lockOwnedEvent(eventId, organizerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nie znaleziono wydarzenia."));
+        if (event.getStatus() != GiftEvent.Status.OPEN) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Lista uczestników jest już zamknięta.");
+        }
+        if (participants.countByEventId(eventId) < 3) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Wydarzenie wymaga co najmniej 3 uczestników.");
+        }
+        event.close();
+        return new CloseResponse(event.getId(), event.getStatus());
     }
 }
