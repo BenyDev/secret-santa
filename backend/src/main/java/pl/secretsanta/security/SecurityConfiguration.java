@@ -24,21 +24,10 @@ import java.util.Map;
 public class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper json) throws Exception {
-        AuthenticationEntryPoint unauthorized = (request, response, exception) -> {
-            response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
-            writeError(json, response, 401, "UNAUTHENTICATED", "Wymagane jest uwierzytelnienie.");
-        };
-        AccessDeniedHandler forbidden = (request, response, exception) ->
-                writeError(json, response, 403, "FORBIDDEN", "Brak uprawnień do tego zasobu.");
+        AuthenticationEntryPoint unauthorized = unauthorized(json);
+        AccessDeniedHandler forbidden = forbidden(json);
 
-        return http
-                // Credentials are sent explicitly in Authorization, with no browser-managed session or cookies.
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .requestCache(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable)
-                .formLogin(AbstractHttpConfigurer::disable)
-                .logout(AbstractHttpConfigurer::disable)
+        return statelessBearer(http)
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
@@ -51,6 +40,29 @@ public class SecurityConfiguration {
                 .oauth2ResourceServer(server -> server.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint(unauthorized).accessDeniedHandler(forbidden))
                 .build();
+    }
+
+    static HttpSecurity statelessBearer(HttpSecurity http) throws Exception {
+        return http
+                // Credentials are sent explicitly in Authorization.
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .requestCache(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable);
+    }
+
+    static AuthenticationEntryPoint unauthorized(ObjectMapper json) {
+        return (request, response, exception) -> {
+            response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+            writeError(json, response, 401, "UNAUTHENTICATED", "Wymagane jest uwierzytelnienie.");
+        };
+    }
+
+    static AccessDeniedHandler forbidden(ObjectMapper json) {
+        return (request, response, exception) ->
+                writeError(json, response, 403, "FORBIDDEN", "Brak uprawnień do tego zasobu.");
     }
 
     private static void writeError(ObjectMapper json, HttpServletResponse response, int status, String code,

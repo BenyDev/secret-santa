@@ -7,31 +7,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
-import java.util.HexFormat;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import pl.secretsanta.event.dto.InvitationDetails;
 import pl.secretsanta.event.dto.InvitationLink;
 import pl.secretsanta.event.dto.JoinResponse;
 
 @Service
 class InvitationService {
-    private static final SecureRandom RANDOM = new SecureRandom();
-    private static final Pattern TOKEN_FORMAT = Pattern.compile("[A-Za-z0-9_-]{43}");
-
     private final GiftEventRepository events;
     private final ParticipantRepository participants;
+    private final ParticipantAccessTokenRepository accessTokens;
 
-    InvitationService(GiftEventRepository events, ParticipantRepository participants) {
+    InvitationService(GiftEventRepository events, ParticipantRepository participants,
+                      ParticipantAccessTokenRepository accessTokens) {
         this.events = events;
         this.participants = participants;
+        this.accessTokens = accessTokens;
     }
 
     @Transactional
@@ -40,10 +33,8 @@ class InvitationService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nie znaleziono wydarzenia."));
         requireOpen(event);
 
-        byte[] random = new byte[32];
-        RANDOM.nextBytes(random);
-        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
-        event.replaceInvitationTokenHash(hash(token));
+        String token = AccessToken.generate();
+        event.replaceInvitationTokenHash(AccessToken.hash(token));
         return new InvitationLink(eventId, token);
     }
 
@@ -60,7 +51,8 @@ class InvitationService {
                 .orElseThrow(InvitationService::invitationNotFound);
         requireOpen(event);
 
-        Participant participant = new Participant(event, null, nickname, Instant.now().truncatedTo(ChronoUnit.MICROS));
+        Instant createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+        Participant participant = new Participant(event, null, nickname, createdAt);
         try {
             participants.saveAndFlush(participant);
         } catch (DataIntegrityViolationException exception) {
@@ -73,8 +65,10 @@ class InvitationService {
             }
             throw exception;
         }
-        return new JoinResponse(
-                participant.getId(), event.getId(), event.getName(), event.getBudget());
+        String participantToken = AccessToken.generate();
+        accessTokens.save(new ParticipantAccessToken(participant, AccessToken.hash(participantToken), createdAt));
+        return new JoinResponse(participant.getId(), event.getId(), event.getName(), event.getBudget(),
+                participant.getNickname(), participantToken);
     }
 
     private static boolean isOpen(GiftEvent event) {
@@ -88,19 +82,10 @@ class InvitationService {
     }
 
     private static String invitationHash(String token) {
-        if (!TOKEN_FORMAT.matcher(token).matches()) {
+        if (!AccessToken.hasValidFormat(token)) {
             throw invitationNotFound();
         }
-        return hash(token);
-    }
-
-    private static String hash(String token) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(token.getBytes(StandardCharsets.US_ASCII)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
-        }
+        return AccessToken.hash(token);
     }
 
     private static ResponseStatusException invitationNotFound() {

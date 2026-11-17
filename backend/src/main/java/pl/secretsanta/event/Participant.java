@@ -27,6 +27,9 @@ public class Participant {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(length = 2000)
+    private String wishlist;
+
     protected Participant() {
     }
 
@@ -40,4 +43,11 @@ public class Participant {
     public UUID getId() { return id; }
     public String getNickname() { return nickname; }
     public Instant getCreatedAt() { return createdAt; }
+
+    GiftEvent getEvent() { return event; }
+    String getWishlist() { return wishlist; }
+
+    void updateWishlist(String wishlist) {
+        this.wishlist = wishlist;
+    }
 }
